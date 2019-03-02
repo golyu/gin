@@ -57,6 +57,9 @@ type Context struct {
 
 	// Accepted defines a list of manually accepted formats for content negotiation.
 	Accepted []string
+
+	// 分页数据
+	pageParams *PageParams
 }
 
 /************************************/
@@ -762,6 +765,11 @@ func (c *Context) AsciiJSON(code int, obj interface{}) {
 	c.Render(code, render.AsciiJSON{Data: obj})
 }
 
+// ErrorJSON 返回错误码对应的错误信息
+func (c *Context) ErrorJSON(code int, data []byte) {
+	c.Render(code, render.ErrorJSON{Data: data})
+}
+
 // XML serializes the given struct as XML into the response body.
 // It also sets the Content-Type as "application/xml".
 func (c *Context) XML(code int, obj interface{}) {
@@ -930,4 +938,98 @@ func (c *Context) Value(key interface{}) interface{} {
 		return val
 	}
 	return nil
+}
+
+// 请求参数绑定,返回一个布尔值,如果为true,请return程序
+func (c *Context) ValidRequest(column interface{}) (finish bool) {
+	// 判断是否为get请求,有就直接参数绑定
+	var err error
+	finish = true
+	if c.Request.Method == http.MethodGet || c.Request.Method == http.MethodDelete {
+		err = c.ShouldBindQuery(column)
+	} else {
+		err = c.ShouldBind(column)
+	}
+	if err != nil {
+		c.JSON4Error(1002) // 参数绑定错误
+		return
+	}
+	// 请求参数验证
+	ok, code, err := c.engine.Validation.Valid(column)
+	if err != nil {
+		panic("valid rule error[校验规则错误,请按照错误信息,将结构体中的校验规则编写规范]:" + err.Error())
+	}
+	if !ok {
+		// 校验失败,返回错误信息
+		c.JSON4Error(int(code))
+		return
+	}
+	return false
+}
+
+// 请求参数绑定,返回一个布尔值和分页数据,如果布尔为true,请return程序
+func (c *Context) ValidPageRequest(columns ...interface{}) (finish bool, pageParams *PageParams) {
+	finish = true
+	// 如果只需要分页数据,不需要绑定其它数据,就不进入值绑定
+	if len(columns) > 0 {
+		column := columns[0]
+		if c.ValidRequest(column) {
+			return
+		}
+	}
+	//请求参数绑定分页,目前先分开进行绑定
+	pageParams = new(PageParams)
+	var err error
+	if c.Request.Method == http.MethodGet || c.Request.Method == http.MethodDelete {
+		err = c.ShouldBindQuery(pageParams)
+	} else {
+		err = c.ShouldBind(pageParams)
+	}
+	if err != nil {
+		c.JSON4Error(1002) // 参数绑定错误
+		return
+	}
+	if pageParams.CurrentPage < 1 {
+		pageParams.CurrentPage = 1
+	}
+	if pageParams.PageSize < 1 {
+		pageParams.PageSize = 50
+	} else {
+		if pageParams.PageSize >= 1000 {
+			pageParams.PageSize = 1000
+		}
+	}
+	offset := (pageParams.CurrentPage - 1) * pageParams.PageSize
+	var limit = []int{pageParams.PageSize, offset}
+	pageParams.Limit = limit
+	c.pageParams = pageParams
+	return false, pageParams
+}
+
+// 返回错误,这个code是错误码,不是状态码
+func (c *Context) JSON4Error(code int) {
+	lang := getLang(c) //获取语言
+	action, ok := c.engine.I18nErrActions[code]
+	if ok {
+		c.ErrorJSON(http.StatusOK, action.ReplyErr(lang))
+		return
+	}
+	c.JSON(http.StatusOK, &Err{Code: code, Msg: "如果获取到这个错误,原因是系统中不存在该错误码,请后端补全"})
+}
+
+// 返回不分页的数据
+func (c *Context) JSON4Item(data interface{}) {
+	c.JSON(http.StatusOK, data)
+}
+
+// 返回分页数据
+func (c *Context) JSON4Pagination(data interface{}, totalCount int) {
+	c.JSON(http.StatusOK, &Pagination{
+		Data: data,
+		Meta: Meta{
+			Total:       totalCount,               // 总数据量
+			CurrentPage: c.pageParams.CurrentPage, // 当前页
+			PageSize:    c.pageParams.PageSize,    // 每页数据量
+		},
+	})
 }

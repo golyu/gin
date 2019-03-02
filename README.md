@@ -1,3 +1,12 @@
+## 基于gin v1.3.0修改,版本号对齐方式为,变更主版本号数值 v1.3.0 -> v6.3.0
+
+- vendor升级为go modules
+- 加入国际化支持
+- 自动数据分页
+- 替换参数校验库为[github.com/golyu/valid](https://github.com/golyu/valid)
+- 统一返回数据格式
+
+
 # Gin Web Framework
 
 <img align="right" width="159px" src="https://raw.githubusercontent.com/gin-gonic/logo/master/color.png">

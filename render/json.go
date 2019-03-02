@@ -35,6 +35,10 @@ type AsciiJSON struct {
 	Data interface{}
 }
 
+type ErrorJSON struct {
+	Data []byte
+}
+
 type SecureJSONPrefix string
 
 var jsonContentType = []string{"application/json; charset=utf-8"}
@@ -143,4 +147,14 @@ func (r AsciiJSON) Render(w http.ResponseWriter) (err error) {
 
 func (r AsciiJSON) WriteContentType(w http.ResponseWriter) {
 	writeContentType(w, jsonAsciiContentType)
+}
+
+func (r ErrorJSON) Render(w http.ResponseWriter) (err error) {
+	r.WriteContentType(w)
+	w.Write(r.Data)
+	return nil
+}
+
+func (r ErrorJSON) WriteContentType(w http.ResponseWriter) {
+	writeContentType(w, jsonContentType)
 }

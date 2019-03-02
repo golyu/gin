@@ -5,6 +5,7 @@
 package gin
 
 import (
+	"github.com/golyu/valid"
 	"html/template"
 	"net"
 	"net/http"
@@ -44,6 +45,11 @@ type RouteInfo struct {
 }
 
 type RoutesInfo []RouteInfo
+
+// 参数校验器
+type IValidation interface {
+	Valid(obj interface{}) (b bool, code int64, err error) // -是否校验成功 -错误码 -错误信息
+}
 
 // Engine is the framework's instance, it contains the muxer, middleware and configuration settings.
 // Create an instance of Engine, by using New() or Default()
@@ -103,6 +109,10 @@ type Engine struct {
 	noMethod         HandlersChain
 	pool             sync.Pool
 	trees            methodTrees
+
+	// *********************************************
+	I18nErrActions map[int]II18nErrAction // 业务错误操作者的集合,用来确定返回错误
+	Validation     IValidation            // 数据校验器
 }
 
 var _ IRouter = &Engine{}
@@ -148,6 +158,17 @@ func Default() *Engine {
 	debugPrintWARNINGDefault()
 	engine := New()
 	engine.Use(Logger(), Recovery())
+	engine.Validation = valid.NewValidation()
+	return engine
+}
+
+// I18nDefault 返回一个支持i18n和分页的gin引擎
+func I18nDefault(i18nActions map[int]II18nErrAction) *Engine {
+	debugPrintWARNINGDefault()
+	engine := New()
+	engine.Use(Logger(), Recovery())
+	engine.Validation = valid.NewValidation()
+	engine.I18nErrActions = i18nActions
 	return engine
 }
 

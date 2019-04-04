@@ -15,3 +15,5 @@ require (
 	gopkg.in/go-playground/validator.v8 v8.18.1
 	gopkg.in/yaml.v2 v2.0.0-20160928153709-a5b47d31c556
 )
+
+replace golang.org/x/net => github.com/golang/net v0.0.0-20161018194804-d4c55e66d8c3

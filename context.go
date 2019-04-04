@@ -1015,11 +1015,13 @@ func (c *Context) JSON4Error(code int) {
 		return
 	}
 	c.JSON(http.StatusOK, &Err{Code: code, Msg: "如果获取到这个错误,原因是系统中不存在该错误码,请后端补全"})
+	c.Abort()
 }
 
 // 返回不分页的数据
 func (c *Context) JSON4Item(data interface{}) {
 	c.JSON(http.StatusOK, data)
+	c.Abort()
 }
 
 // 返回分页数据
@@ -1032,4 +1034,5 @@ func (c *Context) JSON4Pagination(data interface{}, totalCount int) {
 			PageSize:    c.pageParams.PageSize,    // 每页数据量
 		},
 	})
+	c.Abort()
 }

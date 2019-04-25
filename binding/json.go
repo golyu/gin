@@ -32,7 +32,15 @@ func (jsonBinding) BindBody(body []byte, obj interface{}) error {
 }
 
 func decodeJSON(r io.Reader, obj interface{}) error {
-	decoder := json.NewDecoder(r)
+	r2 := new(bytes.Buffer)
+	_, err := io.Copy(r2, r)
+	if err != nil {
+		return err
+	}
+	if r2.Len() == 0 {
+		return nil
+	}
+	decoder := json.NewDecoder(r2)
 	if EnableDecoderUseNumber {
 		decoder.UseNumber()
 	}

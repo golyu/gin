@@ -5,7 +5,9 @@
 package binding
 
 import (
+	"encoding/json"
 	"errors"
+	"github.com/gin-gonic/gin/bytesconv"
 	"reflect"
 	"strconv"
 	"strings"
@@ -125,6 +127,8 @@ func setWithProperType(valueKind reflect.Kind, val string, structField reflect.V
 		}
 		structFieldElem := structField.Elem()
 		return setWithProperType(structFieldElem.Kind(), val, structFieldElem)
+	case reflect.Struct:
+		return json.Unmarshal(bytesconv.StringToBytes(val), structField.Addr().Interface())
 	default:
 		return errors.New("Unknown type")
 	}
